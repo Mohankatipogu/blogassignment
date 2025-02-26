@@ -15,17 +15,12 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 30000,  // Increase timeout to 30 seconds
-})
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected Successfully"))
   .catch(err => {
     console.error("❌ MongoDB Connection Error:", err);
-    process.exit(1);  // Stop the app if MongoDB is not connected
+    process.exit(1);  // Stops the app if MongoDB fails to connect
   });
-
 
 // Middleware
 app.use(cors());
