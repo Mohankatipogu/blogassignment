@@ -13,27 +13,22 @@ const Post = require("./model/uploadmodel");
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-const MONGO_URI = process.env.MONGO_URI; // ✅ Use MongoDB Atlas URI
 
-// ✅ Connect to MongoDB Atlas
+// ✅ Improved MongoDB Connection Handling with Atlas
 const connectDB = async () => {
   try {
-    if (!MONGO_URI) {
-      throw new Error("❌ MONGO_URI is missing. Set it in environment variables.");
-    }
-    await mongoose.connect(MONGO_URI, {
+    await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      dbName: "blogDB", // ✅ Specify the database name
+      dbName: "blogDB", // Ensure you're using the correct database
     });
     console.log("✅ MongoDB Connected Successfully");
   } catch (err) {
-    console.error("❌ MongoDB Connection Error:", err.message);
-    process.exit(1); // Stop the app if MongoDB fails to connect
+    console.error("❌ MongoDB Connection Error:", err);
+    process.exit(1);
   }
 };
 
-// ✅ Start MongoDB Connection
 connectDB();
 
 // ✅ Middleware
@@ -58,8 +53,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ✅ Routes
-
-// 🔹 User Signup
 app.post("/signup", async (req, res) => {
   try {
     const { username, password, role } = req.body;
@@ -73,7 +66,6 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-// 🔹 User Login
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -87,7 +79,6 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// 🔹 Upload Blog
 app.post("/upload", upload.fields([{ name: "image" }, { name: "video" }]), async (req, res) => {
   try {
     const { title, content } = req.body;
@@ -103,7 +94,6 @@ app.post("/upload", upload.fields([{ name: "image" }, { name: "video" }]), async
   }
 });
 
-// 🔹 Fetch Blogs
 app.get("/blogs", async (req, res) => {
   try {
     const blogs = await Post.find().sort({ createdAt: -1 });
@@ -113,52 +103,6 @@ app.get("/blogs", async (req, res) => {
   }
 });
 
-// 🔹 Like a Blog
-app.put("/blogs/:id/like", async (req, res) => {
-  try {
-    const blog = await Post.findById(req.params.id);
-    if (!blog) return res.status(404).json({ message: "Blog not found" });
-
-    blog.likes += 1;
-    await blog.save();
-    res.json({ message: "Liked successfully", likes: blog.likes });
-  } catch (error) {
-    res.status(500).json({ message: "Error liking post" });
-  }
-});
-
-// 🔹 Unlike a Blog
-app.put("/blogs/:id/unlike", async (req, res) => {
-  try {
-    const blog = await Post.findById(req.params.id);
-    if (!blog) return res.status(404).json({ message: "Blog not found" });
-
-    if (blog.likes > 0) {
-      blog.likes -= 1;
-      await blog.save();
-    }
-    res.json({ message: "Unliked successfully", likes: blog.likes });
-  } catch (error) {
-    res.status(500).json({ message: "Error unliking post" });
-  }
-});
-
-// 🔹 Add Comment
-app.post("/blogs/:id/comment", async (req, res) => {
-  try {
-    const { user, text } = req.body;
-    const blog = await Post.findById(req.params.id);
-    if (!blog) return res.status(404).json({ message: "Blog not found" });
-
-    blog.comments.push({ user, text, timestamp: new Date() });
-    await blog.save();
-    res.status(201).json({ message: "Comment added", comments: blog.comments });
-  } catch (error) {
-    res.status(500).json({ message: "Error adding comment" });
-  }
-});
-
-// 🔹 Delete Blog
 app.delete("/blogs/:id", async (req, res) => {
   try {
     const blog = await Post.findByIdAndDelete(req.params.id);
@@ -169,15 +113,14 @@ app.delete("/blogs/:id", async (req, res) => {
   }
 });
 
-// 🔹 Default Route
 app.get("/", async (req, res) => {
   const totalData = await User.find();
   res.send(totalData);
 });
 
-// ✅ Start Server (Ensures Render Port Handling)
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+// ✅ Start Server with Render Compatibility
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
 }).on("error", (err) => {
   console.error("❌ Server Error:", err);
 });
