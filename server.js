@@ -14,15 +14,22 @@ const Post = require("./model/uploadmodel");
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected Successfully"))
-  .catch(err => {
+// ✅ Improved MongoDB Connection Handling
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      dbName: "blogDB", // Optional: Specify DB name
+    });
+    console.log("✅ MongoDB Connected Successfully");
+  } catch (err) {
     console.error("❌ MongoDB Connection Error:", err);
-    process.exit(1);  // Stops the app if MongoDB fails to connect
-  });
+    process.exit(1); // Stop the app if MongoDB fails to connect
+  }
+};
 
-// Middleware
+connectDB();
+
+// ✅ Middleware
 app.use(cors());
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
@@ -30,7 +37,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const JWT_SECRET = process.env.JWT_SECRET || "jwtsecretekey";
 
-// Multer Storage
+// ✅ Multer Storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = file.mimetype.startsWith("image/") ? "uploads/images" : "uploads/videos";
@@ -43,12 +50,14 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Routes
+// ✅ Routes
+
+// 🔹 User Signup
 app.post("/signup", async (req, res) => {
   try {
     const { username, password, role } = req.body;
     if (await User.findOne({ username })) return res.status(400).json({ message: "User already exists" });
-    
+
     const user = new User(req.body);
     await user.save();
     res.status(201).json({ message: "Signup successful", user });
@@ -57,12 +66,13 @@ app.post("/signup", async (req, res) => {
   }
 });
 
+// 🔹 User Login
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
     if (!user || user.password !== password) return res.status(400).json({ message: "Invalid credentials" });
-    
+
     const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: "1h" });
     res.json({ message: "Login successful", token, user });
   } catch (error) {
@@ -70,6 +80,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
+// 🔹 Upload Blog
 app.post("/upload", upload.fields([{ name: "image" }, { name: "video" }]), async (req, res) => {
   try {
     const { title, content } = req.body;
@@ -85,6 +96,7 @@ app.post("/upload", upload.fields([{ name: "image" }, { name: "video" }]), async
   }
 });
 
+// 🔹 Fetch Blogs
 app.get("/blogs", async (req, res) => {
   try {
     const blogs = await Post.find().sort({ createdAt: -1 });
@@ -94,11 +106,12 @@ app.get("/blogs", async (req, res) => {
   }
 });
 
+// 🔹 Like a Blog
 app.put("/blogs/:id/like", async (req, res) => {
   try {
     const blog = await Post.findById(req.params.id);
     if (!blog) return res.status(404).json({ message: "Blog not found" });
-    
+
     blog.likes += 1;
     await blog.save();
     res.json({ message: "Liked successfully", likes: blog.likes });
@@ -107,11 +120,12 @@ app.put("/blogs/:id/like", async (req, res) => {
   }
 });
 
+// 🔹 Unlike a Blog
 app.put("/blogs/:id/unlike", async (req, res) => {
   try {
     const blog = await Post.findById(req.params.id);
     if (!blog) return res.status(404).json({ message: "Blog not found" });
-    
+
     if (blog.likes > 0) {
       blog.likes -= 1;
       await blog.save();
@@ -122,6 +136,7 @@ app.put("/blogs/:id/unlike", async (req, res) => {
   }
 });
 
+// 🔹 Add Comment
 app.post("/blogs/:id/comment", async (req, res) => {
   try {
     const { user, text } = req.body;
@@ -136,6 +151,7 @@ app.post("/blogs/:id/comment", async (req, res) => {
   }
 });
 
+// 🔹 Delete Blog
 app.delete("/blogs/:id", async (req, res) => {
   try {
     const blog = await Post.findByIdAndDelete(req.params.id);
@@ -146,9 +162,15 @@ app.delete("/blogs/:id", async (req, res) => {
   }
 });
 
+// 🔹 Default Route
 app.get("/", async (req, res) => {
   const totalData = await User.find();
   res.send(totalData);
 });
 
-app.listen(PORT, "0.0.0.0", () => console.log(`Server running on port ${PORT}`));
+// ✅ Start Server
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+}).on("error", (err) => {
+  console.error("❌ Server Error:", err);
+});
