@@ -169,7 +169,7 @@ app.get("/", async (req, res) => {
 });
 
 // ✅ Start Server
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 }).on("error", (err) => {
   console.error("❌ Server Error:", err);
