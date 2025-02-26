@@ -13,20 +13,27 @@ const Post = require("./model/uploadmodel");
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+const MONGO_URI = process.env.MONGO_URI; // ✅ Use MongoDB Atlas URI
 
-// ✅ Improved MongoDB Connection Handling
+// ✅ Connect to MongoDB Atlas
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      dbName: "blogDB", // Optional: Specify DB name
+    if (!MONGO_URI) {
+      throw new Error("❌ MONGO_URI is missing. Set it in environment variables.");
+    }
+    await mongoose.connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      dbName: "blogDB", // ✅ Specify the database name
     });
     console.log("✅ MongoDB Connected Successfully");
   } catch (err) {
-    console.error("❌ MongoDB Connection Error:", err);
+    console.error("❌ MongoDB Connection Error:", err.message);
     process.exit(1); // Stop the app if MongoDB fails to connect
   }
 };
 
+// ✅ Start MongoDB Connection
 connectDB();
 
 // ✅ Middleware
@@ -168,9 +175,9 @@ app.get("/", async (req, res) => {
   res.send(totalData);
 });
 
-// ✅ Start Server
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+// ✅ Start Server (Ensures Render Port Handling)
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
 }).on("error", (err) => {
   console.error("❌ Server Error:", err);
 });
